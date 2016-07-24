@@ -39,9 +39,25 @@ namespace TalkerLibrary
             }
             if (string.IsNullOrEmpty(answer))
             {
+
+                if (lastMessage.Contains("your name"))
+                {
+                    answer = "I am Angelica, the robot";
+                }
+                else
+                if (lastMessage.Contains("made you") || lastMessage.Contains("created you") || lastMessage.Contains("build you"))
+                {
+                    answer = "A group of programmers created me in Liverpool UK";
+                }
+                else
                 if (lastMessage.Contains("because") || lastMessage.Contains("Because"))
                 {
                     answer = "Sometimes reasons have no credibility. You know?";
+                }
+                else
+                if (lastMessage.StartsWith("age are you") || lastMessage.StartsWith("old are you") || lastMessage.StartsWith("your age"))
+                {
+                    answer = "I am " + (DateTime.Now - DateTime.Today).Hours + " hours old";
                 }
                 else
                 if (lastMessage.Contains("you") || lastMessage.Contains("You"))
@@ -71,7 +87,7 @@ namespace TalkerLibrary
                 else
                 if (lastMessage.StartsWith("why") || lastMessage.StartsWith("Why"))
                 {
-                    answer = "Why are aware you are talking to a robot?";
+                    answer = "Are aware you are talking to a robot?";
                 }
                 else
                 if (lastMessage.Contains("?") || lastMessage.Contains("?"))
@@ -79,7 +95,17 @@ namespace TalkerLibrary
                     answer = "For some questions, we will never know the answer";
                 }
                 else
-                    answer = "You are telling me that " + lastMessage.Replace("my ", "your ").Replace("you ", "Eliza ").Replace("I ", "you ") + "?";
+                if (lastMessage.Contains("Hi") || lastMessage.Contains("hi"))
+                {
+                    answer = "Hello there :)";
+                }
+                else
+                if (lastMessage.Length<15)
+                {
+                    answer = "Try longer sentences";
+                }
+                else
+                    answer = "Sorry mate, I have no answer prepared for you. Try something else!";//"You are telling me that " + lastMessage.Replace("my ", "your ").Replace("you ", "Eliza ").Replace("I ", "you ") + "?";
             }
             return answer;
         }

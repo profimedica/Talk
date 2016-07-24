@@ -56,10 +56,12 @@ namespace FormsTalker
         {
             string query = InputRichTextBox.Text;
             InputRichTextBox.Text = string.Empty;
+            Voice.Read(1, query);
             AppendText(richTextBox1, Color.Black, ">> " + query);
             con.Save(true, "me", query);
             string answer = ab.Answer(query);
             AppendText(richTextBox1, Color.Blue, "<< " + answer + "\n");
+            Voice.Read(2, answer);
             con.Save(false, "boot", answer);
         }
 
