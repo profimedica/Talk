@@ -2,17 +2,62 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace TalkerLibrary
 {
     public class AnswerBuilder
     {
+
+        public List<Rule> Rules = new List<Rule>();
+        private SQLiteHelper con;
+        Random r = new Random();
+
+        public AnswerBuilder(SQLiteHelper con)
+        {
+            this.con = con;
+        }
+
         public string Answer(string lastMessage)
         {
             lastMessage = lastMessage.Trim();
+
+            List<string> answers = new List<string>();
+            foreach (Rule rule in Rules)
+            {
+                MatchCollection matches = Regex.Matches(lastMessage, rule.RegularExpression);
+                if (matches.Count > 0)
+                {
+                    List<Fragment> fragments = con.LoadFragments(rule.Id);
+                    if (fragments.Count > 0)
+                    {
+                        int rnd = r.Next(fragments.Count);
+                        string answer0 = fragments[rnd].Text;
+                        foreach (Match m in matches)
+                        {
+                            if (m.Groups.Count > 1)
+                            {
+                                answer0 = answer0.Replace("$1", m.Groups[1].Captures[0].Value);
+                            }
+                        }
+                        answers.Add(answer0);
+                    }
+                }
+            }
+            if (answers.Count > 1)
+            {
+
+            }
+            if (answers.Count > 0)
+            {
+                int rnd = r.Next(answers.Count);
+                return answers[rnd];
+            }
+
+            string answer = string.Empty;
+
             string inPossesion = "";
-            string answer = "";
             string marker = "i have a ";
             if (lastMessage.IndexOf(marker, StringComparison.InvariantCultureIgnoreCase) > -1)
             {
@@ -24,6 +69,12 @@ namespace TalkerLibrary
             {
                 inPossesion = lastMessage.Substring(lastMessage.IndexOf(marker, StringComparison.InvariantCultureIgnoreCase) + marker.Length).Split()[0];
                 answer = "Really? You have no " + inPossesion + "? Why?";
+            }
+            marker = "test";
+            if (lastMessage.IndexOf(marker, StringComparison.InvariantCultureIgnoreCase) > -1)
+            {
+                inPossesion = lastMessage.Substring(lastMessage.IndexOf(marker, StringComparison.InvariantCultureIgnoreCase) + marker.Length).Split()[0];
+                answer = "You can write more than that.";
             }
             marker = "you have no ";
             if (lastMessage.IndexOf(marker, StringComparison.InvariantCultureIgnoreCase) > -1)

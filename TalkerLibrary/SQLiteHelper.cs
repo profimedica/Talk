@@ -18,15 +18,123 @@ namespace TalkerLibrary
                 SQLiteConnection.CreateFile("Talker.sqlite");
                 conn = new SQLiteConnection("Data Source=Talker.sqlite;Version=3;");
                 conn.Open();
-                string sql = "CREATE TABLE history (id INTEGER PRIMARY KEY, q NUMERIC, timestamp DATE DEFAULT (datetime('now','localtime')), name VARCHAR(32), text VARCHAR(200))";
+                string sql =
+                    "CREATE TABLE history   (id INTEGER PRIMARY KEY, name VARCHAR(32), text VARCHAR(200), timestamp DATE DEFAULT (datetime('now','localtime')), q NUMERIC)";
                 SQLiteCommand command = new SQLiteCommand(sql, conn);
                 command.ExecuteNonQuery();
-                conn.Close();
+                sql =
+                    "CREATE TABLE rules     (id INTEGER PRIMARY KEY, name VARCHAR(32), text VARCHAR(200), timestamp DATE DEFAULT (datetime('now','localtime')))";
+                command = new SQLiteCommand(sql, conn);
+                command.ExecuteNonQuery();
+                sql =
+                    "CREATE TABLE blocks    (id INTEGER PRIMARY KEY, name VARCHAR(32), text VARCHAR(200), timestamp DATE DEFAULT (datetime('now','localtime')),  rule INTEGER)";
+                command = new SQLiteCommand(sql, conn);
+                command.ExecuteNonQuery();
+                CreateSampleData();
             }
             else
             {
                 conn = new SQLiteConnection("Data Source=Talker.sqlite;Version=3;");
             }
+        }
+
+        public List<Fragment> LoadFragments(int id)
+        {
+            List<Fragment> fragments = new List<Fragment>();
+            DataTable dt = selectQuery("SELECT `text` FROM `blocks` WHERE `rule` = " + id);
+            foreach (DataRow dr in dt.Rows)
+            {
+                if (!string.IsNullOrEmpty(dr[0].ToString()))
+                {
+                    Fragment fragment = new Fragment(){ Text = dr[0].ToString() };
+                    fragments.Add(fragment);
+                }
+            }
+            return fragments;
+        }
+
+        public List<Rule> LoadRules()
+        {
+            List<Rule> rules = new List<Rule>();
+            DataTable dt = selectQuery("SELECT `Id`, `text` FROM `rules` ORDER BY `id` ASC ");
+            int id;
+            foreach (DataRow dr in dt.Rows)
+            {
+                if (!string.IsNullOrEmpty(dr[1].ToString()))
+                {
+                    int.TryParse(dr[0].ToString(), out id);
+                    Rule rule = new Rule() { Id = id, RegularExpression = dr[1].ToString() };
+                    rules.Add(rule);
+                }
+            }
+            return rules;
+        }
+
+        private void CreateSampleData()
+        {
+            long id = InsertRule("your ([a-z]*)");
+            InsterFragment(id, "Lets not talk about my $1");
+            InsterFragment(id, "What about your $1?");
+        }
+
+        private void InsterFragment(long id, string text)
+        {
+            string SQL = "INSERT INTO `blocks` (`name`, `rule`, `text`) VALUES ('start_florin', " + id + ", '" + text + "')";
+            SQLiteCommand command = new SQLiteCommand(SQL, conn);
+            command.ExecuteNonQuery();
+        }
+
+        private void ClearRules()
+        {
+            string SQL = "DELETE FROM `blocks`";
+            SQLiteCommand command = new SQLiteCommand(SQL, conn);
+            command.ExecuteNonQuery();
+            SQL = "DELETE FROM  `rules`";
+            command = new SQLiteCommand(SQL, conn);
+            command.ExecuteNonQuery();
+        }
+
+        private long InsertRule(string text)
+        {
+            string SQL = "INSERT INTO `rules` (`name`, `text`) VALUES ('start_florin', '"+text+"')";
+            SQLiteCommand command = new SQLiteCommand(SQL, conn);
+            command.ExecuteNonQuery();
+            SQL = "SELECT last_insert_rowid()";
+            command = new SQLiteCommand(SQL, conn);
+            return (long)command.ExecuteScalar();
+        }
+
+        public void SaveEditedRules(string text)
+        {
+            ClearRules();
+            long id = 0;
+            foreach(string line in text.Split('\n'))
+            {
+                string trimmed = line.TrimStart();
+                if (line.Length == trimmed.Length)
+                {
+                    id = InsertRule(trimmed);
+                }
+                else
+                {
+                    InsterFragment(id, trimmed);
+                }
+            }
+        }
+
+        public string ShowRulesForEdit(List<Rule> rules)
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach(Rule rule in rules)
+            {
+                sb.AppendLine(rule.RegularExpression);
+                List<Fragment> fragments = LoadFragments(rule.Id);
+                foreach(Fragment f in fragments)
+                {
+                    sb.AppendLine("\t"+f.Text);
+                }
+            }
+            return sb.ToString();
         }
 
         public SQLiteHelper()
@@ -54,7 +162,6 @@ namespace TalkerLibrary
             {
                 //Add your exception code here.
             }
-            conn.Close();
             return dt;
         }
 
